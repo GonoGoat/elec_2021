@@ -24,7 +24,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 
 
 # Project Name
-PROJECTNAME=Projet_7Segments.X
+PROJECTNAME=elec_2021
 
 # Active Configuration
 DEFAULTCONF=default
