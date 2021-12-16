@@ -60,9 +60,10 @@ void main(void) {
     SSPCON2 = 0b00000000;
     SSPADD = 24;
     
-    int nb_position = 0;
+    char nb_position = 0;
     char compteur;   // compteur pour les rubriques
     char compteur_0N_OFF = 0;  // compteur pour la marche/arret
+    char Reglage_EEPROM = 1;
 /*    int nb_menu_P = 6;
     int nb_sous_r0 =3;
     int nb_sous_r1 =3;
@@ -88,7 +89,7 @@ void main(void) {
                 case 0 :        // Affichage Alimentation
                     while(compteur!=-1)
                     {
-                        compteur = get_count(nb_position);
+                        compteur = get_count(compteur);
                         if(compteur>=3)
                             compteur = 0;
                         if(compteur=0)
@@ -123,11 +124,11 @@ void main(void) {
                 case 1 :        // Commande Alimentation
                     while(compteur!=-1)
                     {
-                        compteur = get_count(nb_position);
+                        compteur = get_count(compteur);
                         if(compteur>=2)
                             compteur = 0;
                         if(compteur=0)
-                            //affiche ON OFF
+                            //affiche marche - arret
                         if(compteur=1)
                             //affiche Réglage Tension
                         if(PORTAbits.RA1 == 0)
@@ -150,15 +151,26 @@ void main(void) {
                                         {
                                             compteur_ON_0FF =(compteur_ON_OFF +1)%2 
                                             // Allumer ou éteindre la machine
-                                        }
-                                            
+                                        }    
                                         break;
-                                    case 1 :
                                         
-                                        //affiche compteur
-                                        char_1 = (get_count(nb_position)%nb_menu_P);
-                                        //char_tension = char_1*10+char_2
-                                        //Definir tention = char_tension
+                                    case 1 :
+                                        char_1 = (get_count(char_1)%10);
+                                        //affiche char_1
+                                        if(PORTAbits.RA1 == 0)
+                                        {
+                                            while (PORTAbits.RA2 == 0)
+                                            {
+                                                char_2 = (get_count(char_2)%10);
+                                                //affiche char_2
+                                                if(PORTAbits.RA1 == 0)
+                                                {
+                                                    //char_tension = char_1*10+char_2
+                                                    //Definir tention = char_tension
+                                                    __delay_ms(200);
+                                                }
+                                            }   // back 2 fois 
+                                        } 
                                         break;
                                 }
                             }
@@ -174,7 +186,7 @@ void main(void) {
                     break;
                     
                 case 3 :            // Lecture EEPROM
-                    while(nb_position!=-1)
+                    while(compteur!=-1)
                     {
                         
                     }
@@ -182,16 +194,26 @@ void main(void) {
                     
                 case 4 :            // Effacement EEPROM
              
-                    while(compteur!=-1)
+                    while(PORTAbits.RA2 == 0)
                     {
-                     
+                        // affiche Êtes vous sur d'effacer l'EEPROM
+                        if(PORTAbits.RA1 == 0)
+                        {
+                            //effacer l'EEPROM
+                            // affiche EPPROM effacé
+                        }
                     }
                     break;
                  
                 case 5 :            // Réglage EEPROM
-                    while(compteur!=-1)
+                    while(PORTAbits.RA2 == 0)
                     {
-                     
+                        Reglage_EEPROM = get_count(Reglage_EEPROM)%11;
+                        // affiche compteur
+                        if(PORTAbits.RA1 == 0)
+                        {
+                              // faire le reglage avec l'EEPROM
+                        }
                     }
                     break;    
             }
