@@ -1,63 +1,37 @@
-/* 
+/*
  * File:   main.c
- * Author: thomashamamji
+ * Author: ELEC MA0/BA3
  *
- * Created on 21 décembre 2021, 12:40
+ * Created on November 24, 2021, 2:23 PM
  */
 
-#include "main.h"
+// CONFIG ------------------------------------------------------------------------------------------------------------------------------------------------
 
-int ascii_hex_to_decimal(char car) {
-    int num = 0;
-    num = num << 4;
-    num = (car<='9')?(car-'0'):(car-'a'+10);
-    return num;
-}
+#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config BOREN = OFF      // Brown-out Reset Enable bit (BOR disabled)
+#pragma config LVP = OFF        // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3 is digital I/O, HV on MCLR must be used for programming)
+#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
+#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
+#pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
 
-void decimal_to_ascii_hex(int decimal, char * buffer) {
-    sprintf(buffer, "%x", decimal);
-}
+// #pragma config statements should precede project file includes.
+// Use project enums instead of #define for ON and OFF. --------------------------------------------------------------------------------------------------
 
-int chksum_calculation (const char * chain, char * buffer) {
-  int i, j, chksum = 0;
-  char ascii[16] = "0123456789abcdef";
-  char chksum_str[3] = "";
 
-  strcpy(buffer, chain);
-  
-  for (i = 0; chain[i]; i+=2) {
-    int s = ascii_hex_to_decimal(chain[i]) * 16 + ascii_hex_to_decimal(chain[i+1]);
-    chksum += s;
-  }
+#include <xc.h>
+#define _XTAL_FREQ 16000000
 
-  printf("%d %x\n", chksum, chksum);
-  chksum = (chksum & 0b11111111);
+#define PCF1_W 0b01000010   // Adresse en �criture du PCF8574 1
+#define PCF2_W 0b01000110   // Adresse en �criture du PCF8574 2
+#define PCF3_W 0b01000000   // Adresse en �criture du PCF8574 3
+#define PCF4_W 0b01001110   // Adresse en �criture du PCF8574 4
 
-  decimal_to_ascii_hex(256-chksum, chksum_str);
-  strcat(buffer, chksum_str);
+void main(void) {
 
-  return chksum;
-}
-
-void control_alim (char * tram) {
-    char new_tram[30] = "";
-    chksum_calculation(tram, new_tram);
-
-    // UART(new_tram) -> REPONSE(new_tram)
-}
-
-void set_voltage (char * tram) {
-  char new_tram[30] = "";
-
-  // Set voltage to tram
-
-  chksum_calculation(tram, new_tram);
-}
-
-int main(void) {
-    char str_chks[40] = "";
-    printf("%d\n", chksum_calculation("010300200002", str_chks));
-    printf("%s\n", str_chks);
-    
-    return (0);
+    while(1){        
+        // TODO
+    }
+    return;
 }
