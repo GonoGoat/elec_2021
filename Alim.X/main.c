@@ -25,29 +25,15 @@ void to_upper (char * str) {
   }
 }
 
-char ascii_hex_to_decimal(char letter) {
-    char num = 0;
+int ascii_hex_to_decimal(char car) {
+    int num = 0;
     num = num << 4;
-    num = (letter<='9')?(letter-'0'):(letter-'a'+10);
-    num = (num & 0b00001111);
+    num = (car<='9')?(car-'0'):(car-'a'+10);
     return num;
 }
 
 void decimal_to_ascii_hex(int decimal, char * buffer) {
     sprintf(buffer, "%x", decimal);
-}
-
-void send_tram(char * tram) {
-    while(*tram != '\0') {
-      TXREG = *tram;
-      RCSTAbits.CREN = 0;
-      //printf("%c", *tram);
-      tram++;
-    }
-    TXREG = "\r";
-    RCSTAbits.CREN = 0;
-    TXREG = "\n";
-    RCSTAbits.CREN = 0;
 }
 
 int chksum_calculation (const char * chain, char * buffer) {
@@ -122,21 +108,6 @@ void set_power (int power) {
     to_upper(new_tram3);
     // Send UART
     printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_POWER, new_tram3);
-}
-
-char get_voltage () {
-  // TODO
-  return 0;
-}
-
-char get_current () {
-  // TODO
-  return 0;
-}
-
-char get_power () {
-  // TODO
-  return 0;
 }
 
 int main(void) {
