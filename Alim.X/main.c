@@ -1,16 +1,37 @@
-/* 
- * File:   main.c
- * Author: thomashamamji
- *
- * Created on 21 décembre 2021, 12:40
- */
-
 #include "main.h"
 
-// Trames de lecture.
-// Trames d'ecriture.
+// PREFIXES
+#define PRE_SET_VALUE ":01060015"
+
+// ENABLE
+#define ENABLE_REMOTE_MODE ":010601000001f7"
+
+// CONFIGURE 
 #define ENABLE_VOLTAGE ":010600160000e3"
-#define ENABLE_REMOTE ":010601000001f7"
+#define ENABLE_CURRENT ":010600160010d3"
+#define ENABLE_POWER ":010600160020c3"
+
+// COMMANDS
+#define POWER_ON ":010600170011D1"
+#define POWER_OFF ":010600170000E2"
+
+/*
+
+    Missing :
+        *   ENABLE_CURRENT
+        *   ENABLE_POWER
+
+*/
+
+void to_upper (char * str) {
+  for (int i = 0; str[i]; i++) {
+    char c = str[i];
+    if (c >= 97 && c <= 122) {
+      c -= 32;
+    }
+    str[i] = c;
+  }
+}
 
 char ascii_hex_to_decimal(char letter) {
     char num = 0;
@@ -39,7 +60,6 @@ void send_tram(char * tram) {
 
 int chksum_calculation (const char * chain, char * buffer) {
   int i, j, chksum = 0;
-  char ascii[16] = "0123456789abcdef";
   char chksum_str[3] = "";
 
   strcpy(buffer, chain);
@@ -58,7 +78,7 @@ int chksum_calculation (const char * chain, char * buffer) {
   return chksum;
 }
 
-void set_value (char * tram, int val) {
+void set_value (char tram[30], int val) {
     char asciihex[10] = "";
     sprintf(asciihex, "%04x", val);
     strcat(tram, asciihex);
@@ -69,14 +89,47 @@ void set_voltage (int voltage) {
     // Send UART
     // Enable voltage mode
     // Send UART
-    char tram3[30] = ":01060015";
-    // Set 10 V
+    // Set V value
     char new_tram3[30] = "";
-    set_value(tram3, voltage);
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, voltage);
     // Checksum
-    chksum_calculation(tram3, new_tram3);
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
     // Send UART
-    printf("%s\n", new_tram3);
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_VOLTAGE, new_tram3);
+}
+
+void set_current (int current) {
+    // Enable remote mode
+    // Send UART
+    // Enable current mode
+    // Send UART
+    // Set A value
+    char new_tram3[30] = "";
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, current);
+    // Checksum
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
+    // Send UART
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_CURRENT, new_tram3);
+}
+
+void set_power (int power) {
+    // Enable remote mode
+    // Send UART
+    // Enable power mode
+    // Send UART
+    // Set W value
+    char new_tram3[30] = "";
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, power);
+    // Checksum
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
+    // Send UART
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_POWER, new_tram3);
 }
 
 char get_voltage () {
@@ -96,5 +149,7 @@ char get_power () {
 
 int main(void) {
     set_voltage(10); // 10 V
+    set_current(10); // 10 A
+    set_power(35); // 10 W
     return (0);
 }
