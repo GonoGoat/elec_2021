@@ -44,18 +44,15 @@ void decimal_to_ascii_hex(int decimal, char * buffer) {
 
 void send_tram(char * tram) {
     while(*tram != '\0') {
-      TXREG = *tram;
-      RCSTAbits.CREN = 0;
-      while (!RCSTAbits.CREN);
-      //printf("%c", *tram);
-      tram++;
+        while (!TXIF);
+        TXREG = *tram;
+        //printf("%c", *tram);
+        tram++;
     }
+    while (!TXIF);
     TXREG = '\r';
-    RCSTAbits.CREN = 0;
-    while (!RCSTAbits.CREN);
+    while (!TXIF);
     TXREG = '\n';
-    RCSTAbits.CREN = 0;
-    while (!RCSTAbits.CREN);
 }
 
 int chksum_calculation (const char * chain, char * buffer) {
@@ -156,9 +153,9 @@ int main(void) {
 
     // Put the config in the main !!!
 
-    RCSTAbits = RCSTA_byte;
-    TXSTAbits = TXSTA_byte;
-    SPBRGbits = SPBRG_byte;
+    RCSTA = RCSTA_byte;
+    TXSTA = TXSTA_byte;
+    SPBRG = SPBRG_byte;
 
     set_power(35); // 35 W
     return (0);
