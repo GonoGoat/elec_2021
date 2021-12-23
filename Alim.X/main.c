@@ -1,101 +1,165 @@
-/* Microchip Technology Inc. and its subsidiaries.  You may use this software 
- * and any derivatives exclusively with Microchip products. 
- * 
- * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS".  NO WARRANTIES, WHETHER 
- * EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED 
- * WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A 
- * PARTICULAR PURPOSE, OR ITS INTERACTION WITH MICROCHIP PRODUCTS, COMBINATION 
- * WITH ANY OTHER PRODUCTS, OR USE IN ANY APPLICATION. 
- *
- * IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE, 
- * INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND 
- * WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS 
- * BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE.  TO THE 
- * FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL LIABILITY ON ALL CLAIMS 
- * IN ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED THE AMOUNT OF FEES, IF 
- * ANY, THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
- *
- * MICROCHIP PROVIDES THIS SOFTWARE CONDITIONALLY UPON YOUR ACCEPTANCE OF THESE 
- * TERMS. 
- */
+#include "main.h"
 
-/* 
- * File:   
- * Author: 
- * Comments:
- * Revision history: 
- */
+// PREFIXES
+#define PRE_SET_VALUE ":01060015"
 
-// This is a guard condition so that contents of this file are not included
-// more than once.  
-#ifndef XC_HEADER_TEMPLATE_H
-#define	XC_HEADER_TEMPLATE_H
+// ENABLE
+#define ENABLE_REMOTE_MODE ":010601000001F7"
 
-#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator)
-#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
-#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
-#pragma config BOREN = OFF      // Brown-out Reset Enable bit (BOR disabled)
-#pragma config LVP = OFF        // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3 is digital I/O, HV on MCLR must be used for programming)
-#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
-#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
-#pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
+// CONFIGURE 
+#define ENABLE_VOLTAGE ":010600160000E3"
+#define ENABLE_CURRENT ":010600160010D3"
+#define ENABLE_POWER ":010600160020C3"
 
-#include <xc.h> // include processor files - each processor file is guarded.  
-#include <stdio.h>
-#include <string.h>
+// READING
+#define READ_VOLTAGE ":010300100001EB"
+#define READ_CURRENT ":010300110001EA"
+#define READ_POWER ":010300120001E9"
 
-#define _XTAL_FREQ 16000000
+// COMMANDS
+#define POWER_ON ":010600170011D1"
+#define POWER_OFF ":010600170000E2"
 
-#define PCF1_W 0b01000010   // Adresse en �criture du PCF8574 1
-#define PCF2_W 0b01000110   // Adresse en �criture du PCF8574 2
-#define PCF3_W 0b01000000   // Adresse en �criture du PCF8574 3
-#define PCF4_W 0b01001110   // Adresse en �criture du PCF8574 4
-
-#define RCSTA_byte 0b10010000
-#define TXSTA_byte 0b00100100
-#define SPBRG_byte 64
-
-
-// TODO Insert appropriate #include <>
-
-// TODO Insert C++ class definitions if appropriate
-
-// TODO Insert declarations
-
-// Comment a function and leverage automatic documentation with slash star star
-/**
-    <p><b>Function prototype:</b></p>
-  
-    <p><b>Summary:</b></p>
-
-    <p><b>Description:</b></p>
-
-    <p><b>Precondition:</b></p>
-
-    <p><b>Parameters:</b></p>
-
-    <p><b>Returns:</b></p>
-
-    <p><b>Example:</b></p>
-    <code>
- 
-    </code>
-
-    <p><b>Remarks:</b></p>
- */
-// TODO Insert declarations or function prototypes (right here) to leverage 
-// live documentation
-
-#ifdef	__cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-    // TODO If C++ is being used, regular C code needs function names to have C 
-    // linkage so the functions can be used by the c code. 
-
-#ifdef	__cplusplus
+void to_upper (char * str) {
+  for (int i = 0; str[i]; i++) {
+    char c = str[i];
+    if (c >= 97 && c <= 122) {
+      c -= 32;
+    }
+    str[i] = c;
+  }
 }
-#endif /* __cplusplus */
 
-#endif	/* XC_HEADER_TEMPLATE_H */
+char ascii_hex_to_decimal(char letter) {
+    char num = 0;
+    num = num << 4;
+    num = (letter<='9')?(letter-'0'):(letter-'a'+10);
+    num = (num & 0b00001111);
+    return num;
+}
 
+void decimal_to_ascii_hex(int decimal, char * buffer) {
+    sprintf(buffer, "%x", decimal);
+}
+
+void send_tram(char * tram) {
+    while(*tram != '\0') {
+      TXREG = *tram;
+      RCSTAbits.CREN = 0;
+      while (!RCSTAbits.CREN);
+      //printf("%c", *tram);
+      tram++;
+    }
+    TXREG = '\r';
+    RCSTAbits.CREN = 0;
+    while (!RCSTAbits.CREN);
+    TXREG = '\n';
+    RCSTAbits.CREN = 0;
+    while (!RCSTAbits.CREN);
+}
+
+int chksum_calculation (const char * chain, char * buffer) {
+  int i, j, chksum = 0;
+  char chksum_str[3] = "";
+
+  strcpy(buffer, chain);
+  
+  for (i = 1; chain[i]; i+=2) {
+    int s = ascii_hex_to_decimal(chain[i]) * 16 + ascii_hex_to_decimal(chain[i+1]);
+    chksum += s;
+  }
+
+  printf("%d %x\n", chksum, chksum);
+  chksum = (chksum & 0b11111111);
+
+  decimal_to_ascii_hex(256-chksum, chksum_str);
+  strcat(buffer, chksum_str);
+
+  return chksum;
+}
+
+void set_value (char tram[30], int val) {
+    char asciihex[10] = "";
+    sprintf(asciihex, "%04x", val);
+    strcat(tram, asciihex);
+}
+
+void set_voltage (int voltage) {
+    // Enable remote mode
+    // Send UART
+    // Enable voltage mode
+    // Send UART
+    // Set V value
+    char new_tram3[30] = "";
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, voltage);
+    // Checksum
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
+    // Send UART
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_VOLTAGE, new_tram3);
+}
+
+void set_current (int current) {
+    // Enable remote mode
+    // Send UART
+    // Enable current mode
+    // Send UART
+    // Set A value
+    char new_tram3[30] = "";
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, current);
+    // Checksum
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
+    // Send UART
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_CURRENT, new_tram3);
+}
+
+void set_power (int power) {
+    // Enable remote mode
+    // Send UART
+    send_tram(ENABLE_REMOTE_MODE);
+    // Enable power mode
+    // Send UART
+    send_tram(ENABLE_POWER);
+    // Set W value
+    char new_tram3[30] = "";
+    char tram[30] = PRE_SET_VALUE;
+    set_value(tram, power);
+    // Checksum
+    chksum_calculation(tram, new_tram3);
+    to_upper(new_tram3);
+    // Send UART
+    send_tram(new_tram3);
+    printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_POWER, new_tram3);
+}
+
+char get_voltage () {
+  // TODO
+  return 0;
+}
+
+char get_current () {
+  // TODO
+  return 0;
+}
+
+char get_power () {
+  // TODO
+  return 0;
+}
+
+int main(void) {
+    // set_voltage(10); // 10 V
+    // set_current(10); // 10 A
+
+    // Put the config in the main !!!
+
+    RCSTAbits = RCSTA_byte;
+    TXSTAbits = TXSTA_byte;
+    SPBRGbits = SPBRG_byte;
+
+    set_power(35); // 35 W
+    return (0);
+}
