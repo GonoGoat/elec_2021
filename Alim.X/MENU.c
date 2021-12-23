@@ -26,6 +26,7 @@
 * PORTBbits.RB4 = LED_2
 */
 
+
 char get_count(char compteur)
 {      
     if (PORTAbits.RA0 == 0)
@@ -132,6 +133,7 @@ char read_rtc(char registre)
         while(PIR1bits.SSPIF == 0);     //Attente de la fin du STOP
         PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
 
+<<<<<<< Updated upstream
         return donnee;
 }
 
@@ -160,6 +162,11 @@ char get_number_limit(char limite)
     } 
     return 0 ;
 }
+=======
+    return donnee;
+}
+
+>>>>>>> Stashed changes
 void reglages_rtc (char mois, char date, char heure, char minute, char seconde)
 {
     write_rtc(0,seconde);
@@ -187,17 +194,24 @@ void main(void)
     char compteur,compteur2,compteur3;   // compteur pour les rubriques
     char compteur_ON_OFF = 0;  // compteur pour la marche/arret
     char Reglage_EEPROM = 1;
+<<<<<<< Updated upstream
     char fin=0,tension,mois,jours,heures,minutes,secondes,case_eeprom;
     
     reglages_rtc(0b00010010,0b00100011,0b00010010,0b000110100,0);  // Init RTC
+=======
+    char fin=0;  
+    char last_save = read_rtc(1);
+>>>>>>> Stashed changes
     
-    afficheur(0,0);
-    afficheur(1,0);
-    afficheur(2,0);
-    afficheur(3,0);
+    char secondes, minutes, heures, jour, mois;
     
+    //(char mois 4, char jour 3,     char heure 2,     char minute :reg 1    , char seconde : reg 0)
+    reglages_rtc(0b00010010,0b00100011,0b00010010,0b000110100,0);
+    // 3 > 2 > 1 > 0
+      
     while(1==1)
     {   
+        
         nb_position = get_count(nb_position)%7;
         afficheur(0,nb_position+1);
         if(PORTAbits.RA1 == 0)
@@ -254,14 +268,40 @@ void main(void)
                                         afficheur(3,compteur_ON_OFF);
                                         if(PORTAbits.RA1 == 0)
                                         {
-                                            // faire le changement : Allumer ou Éteindre
+                                            // faire le changement : Allumer ou ?teindre
                                         }    
                                         break;
                                         
                                     case 1 :        //Commande Tension
+<<<<<<< Updated upstream
                                         __delay_ms(600); 
                                         tension=get_number_limit(99);
                                         // changer tension
+=======
+                                        compteur2 = 0;
+                                        compteur3 = 0;
+                                        __delay_ms(400); 
+                                        while(PORTAbits.RA2 != 0 && fin == 0)
+                                        {
+                                            afficheur(2,compteur2);
+                                            compteur2 = get_count(compteur2)%10;    // Obtiens la dizaine de la tension voulue
+                                            if(PORTAbits.RA1 == 0)
+                                            {   
+                                                __delay_ms(800); 
+                                                while(PORTAbits.RA2 != 0 && fin == 0)
+                                                {
+                                                    afficheur(3,compteur2);
+                                                    compteur2 = get_count(compteur2)%10; // Obtiens l'unitÈ de la tension voulue
+                                                    if(PORTAbits.RA1 == 0)
+                                                    {
+                                                        //Definir tention = compteur2*10+compteur2
+                                                         fin = 1;
+                                                        __delay_ms(400); 
+                                                    }
+                                                }                          
+                                            }
+                                         } 
+>>>>>>> Stashed changes
                                         break;
                                 }
                                 
@@ -282,9 +322,15 @@ void main(void)
                             afficheur(3, mois & 0b00001111);
                             afficheur(2, (mois & 0b11110000)>>4);
                             
+<<<<<<< Updated upstream
                             jours = read_rtc(4);
                             afficheur(1, jours & 0b00001111);
                             afficheur(0, (jours & 0b11110000)>>4);
+=======
+                            jour = read_rtc(4);
+                            afficheur(1, jour & 0b00001111);
+                            afficheur(0, (jour & 0b11110000)>>4);
+>>>>>>> Stashed changes
          
                         if(PORTAbits.RA1 == 0)
                         {
@@ -377,8 +423,12 @@ void main(void)
                                 switch(compteur)
                                 {
                                     case 0:
+<<<<<<< Updated upstream
                                         case_eeprom=get_number_limit(35);
                                         // Selection de la case mémoire à atteindre
+=======
+                                        // Selection de la case mÈmoire ? atteindre
+>>>>>>> Stashed changes
                                         break;
                                     case 1:
                                         // Lecture sur l'EEPROM de l'heure et des minutes
@@ -390,7 +440,7 @@ void main(void)
                                         // Lecture sur l'EEPROM de la tension
                                         break;
                                     case 4:
-                                        // Lecture sur l'EEPROM de l'intensité
+                                        // Lecture sur l'EEPROM de l'intensitÈ
                                         break;
                                 }
                             }
@@ -436,8 +486,21 @@ void main(void)
                     break;
             }
         }
+<<<<<<< Updated upstream
        afficheur(1,0); 
        afficheur(2,0); 
        afficheur(3,0); 
+=======
+        afficheur(1,0); 
+        afficheur(2,0); 
+        afficheur(3,0); 
+       
+        if(read_rtc(1) == ((last_save & 0b11110000)) + 1){
+           last_save = read_rtc(1);
+           // enregistrer ici
+           // appeller la fonction d'enregistrement ici
+        }
+       
+>>>>>>> Stashed changes
     }         
 }
