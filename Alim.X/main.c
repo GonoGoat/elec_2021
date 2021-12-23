@@ -46,13 +46,16 @@ void send_tram(char * tram) {
     while(*tram != '\0') {
       TXREG = *tram;
       RCSTAbits.CREN = 0;
+      while (!RCSTAbits.CREN);
       //printf("%c", *tram);
       tram++;
     }
     TXREG = '\r';
     RCSTAbits.CREN = 0;
+    while (!RCSTAbits.CREN);
     TXREG = '\n';
     RCSTAbits.CREN = 0;
+    while (!RCSTAbits.CREN);
 }
 
 int chksum_calculation (const char * chain, char * buffer) {
@@ -116,8 +119,10 @@ void set_current (int current) {
 void set_power (int power) {
     // Enable remote mode
     // Send UART
+    send_tram(ENABLE_REMOTE_MODE);
     // Enable power mode
     // Send UART
+    send_tram(ENABLE_POWER);
     // Set W value
     char new_tram3[30] = "";
     char tram[30] = PRE_SET_VALUE;
@@ -126,6 +131,7 @@ void set_power (int power) {
     chksum_calculation(tram, new_tram3);
     to_upper(new_tram3);
     // Send UART
+    send_tram(new_tram3);
     printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_POWER, new_tram3);
 }
 
@@ -145,8 +151,15 @@ char get_power () {
 }
 
 int main(void) {
-    set_voltage(10); // 10 V
-    set_current(10); // 10 A
-    set_power(35); // 10 W
+    // set_voltage(10); // 10 V
+    // set_current(10); // 10 A
+
+    // Put the config in the main !!!
+
+    RCSTAbits = RCSTA_byte;
+    TXSTAbits = TXSTA_byte;
+    SPBRGbits = SPBRG_byte;
+
+    set_power(35); // 35 W
     return (0);
 }

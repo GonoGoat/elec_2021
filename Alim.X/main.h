@@ -52,7 +52,8 @@
 #define PCF4_W 0b01001110   // Adresse en �criture du PCF8574 4
 
 #define RCSTA_byte 0b10010000
-#define TXSTA_byte 0b00000000
+#define TXSTA_byte 0b00100100
+#define SPBRG_byte 64
 
 
 // TODO Insert appropriate #include <>
