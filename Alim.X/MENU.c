@@ -8,9 +8,6 @@
 #pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
 #pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
 
-// #pragma config statements should precede project file includes.
-// Use project enums instead of #define for ON and OFF.
-
 #include <xc.h>
 #define _XTAL_FREQ 16000000
 
@@ -28,19 +25,13 @@
 * PORTBbits.RB4 = LED_2
 */
 
-
-char get_count(char compteur, char *sortie)
-{       
+char get_count(char compteur)
+{      
     if (PORTAbits.RA0 == 0)
     {
         compteur++;
         __delay_ms(400);
     }
-    if (PORTAbits.RA2 == 0)
-    {
-        __delay_ms(400);
-        sortie = 1;
-    }    
     return compteur;
 }
 
@@ -52,7 +43,8 @@ void afficheur(char position, char valeur)
     while(PIR1bits.SSPIF == 0);         // Attente de la fin du START // On attend que PIR1bits.SSPIF passe ? 1
     PIR1bits.SSPIF = 0;                 // Remise ? 0 du flag
         
-    switch(position){
+    switch(position)
+    {
         case 0:
             SSPBUF = PCF1_W;
             break;
@@ -79,14 +71,6 @@ void afficheur(char position, char valeur)
     PIR1bits.SSPIF = 0;                 // Remise ? 0 du flag
 }
 
-/* PORTAbits.RA0 = Bouton Up
-* PORTAbits.RA1 = Bouton OK
-* PORTAbits.RA2 = Bouton BAck
-* 
-* PORTBbits.RB5 = LED_1
-* PORTBbits.RB4 = LED_2
-*/
-// Afficher une valeur dans un 7segments
 void main(void) 
 {
     //Initialisations
@@ -102,36 +86,32 @@ void main(void)
     SSPADD = 24;
     
     char nb_position = 0;
-    char compteur;   // compteur pour les rubriques
+    char compteur,compteur2,compteur3;   // compteur pour les rubriques
     char compteur_ON_OFF = 0;  // compteur pour la marche/arret
     char Reglage_EEPROM = 1;
-    char var1,var2,sortie;
-       
-    afficheur(0,9);
-    afficheur(1,9);
-    afficheur(2,9);
-    afficheur(3,9);
-    while(1==1)
-    {
-        
+    char fin=0;   
     
-        afficheur(0,nb_position);
-        nb_position = (get_count(nb_position,&sortie)%7);   // Si 5 up est dï¿½passï¿½ alors retour nb_position ï¿½ 0
+    afficheur(0,0);
+    afficheur(1,0);
+    afficheur(2,0);
+    afficheur(3,0);
+    
+    while(1==1)
+    {   
+        nb_position = get_count(nb_position)%7;
+        afficheur(0,nb_position+1);
         if(PORTAbits.RA1 == 0)
         {
-            
-            __delay_ms(200);
+            __delay_ms(400);
             compteur = 0;
-            sortie= 0; 
-            switch (nb_position)
+            fin = 0;
+            switch(nb_position)
             {
-                case 0 :        // Affichage Alimentation
-                    afficheur(0,0);
-                    __delay_ms(2000);
-                    while(sortie!=1)
+                case 0 :    // Affichage Alimentation
+                    while(PORTAbits.RA2 != 0)
                     {
-                        afficheur(1,compteur);
-                        compteur = get_count(compteur,&sortie)%3; 
+                        afficheur(1,compteur+1);
+                        compteur = get_count(compteur)%3; 
                         if(PORTAbits.RA1 == 0)
                         {
                             while(PORTAbits.RA2 != 0)
@@ -140,156 +120,208 @@ void main(void)
                                 {
                                     case 0 :
                                         //affiche valeur Puissance
-                                        afficheur(2,0);
                                         break;
                                     case 1 :
                                         //affiche valeur Tension
-                                        afficheur(2,1);
                                         break;
                                     case 2 :
                                         //affiche valeur Intensite
-                                        afficheur(2,2);
                                         break;
                                 }
-                                __delay_ms(200);
                             }   
-                            afficheur(0,9);     // Remets les 7 segment ï¿½ 0
-                            afficheur(1,9);
-                            afficheur(2,9);
-                            afficheur(3,9);
-                            
-                        }   // back 2 fois
+                            afficheur(2,0);
+                            afficheur(3,0);
+                            __delay_ms(400);
+                        }
                     }
                     break;
                     
-                case 1 :        // Commande Alimentation
-                    afficheur(2,1);
-                    __delay_ms(2000);
-                    while(sortie!=1)
-                    {
-                        afficheur(3,compteur);
-                        compteur = get_count(compteur,&sortie)%2;
-
+                case 1 :    // Commande Alimentation
+                    while(PORTAbits.RA2 != 0 && fin == 0)
+                    {         
+                        compteur = get_count(compteur)%2;
+                        afficheur(1,compteur+1);
                         if(PORTAbits.RA1 == 0)
                         {
-                            while (PORTAbits.RA2 != 0)
+                            afficheur(0,0);
+                            afficheur(1,0);
+                            while (PORTAbits.RA2 != 0 && fin == 0)
                             {
                                 switch(compteur)
                                 {
-                                    case 0 :        // MARCHE/ARRET
-                                       
-                                        if(compteur_ON_OFF==0)
-                                        {
-                                            //affiche ON OFF
-                                            //        **
-                                            afficheur(1,1);
-                                            afficheur(0,0);
-                                        }
-                                        else
-                                        {
-                                            //affiche ON OFF
-                                            //           ***
-                                            afficheur(1,1);
-                                            afficheur(0,1);
-                                        }
+                                    case 0 :        // Marche/Arret
+                                        compteur_ON_OFF =get_count(compteur_ON_OFF)%2;
+                                        afficheur(3,compteur_ON_OFF);
                                         if(PORTAbits.RA1 == 0)
                                         {
-                                            compteur_ON_OFF =(compteur_ON_OFF +1)%2;
-                                            // Allumer ou ï¿½teindre la machine (faire l'inverse)
+                                            // faire le changement : Allumer ou Éteindre
                                         }    
                                         break;
                                         
-                                    case 1 :        //REGLAGE TENSION
-                                        var1 = 0,var2 = 0;
-                                        while(sortie!=1)
+                                    case 1 :        //Commande Tension
+                                        compteur2 = 0;
+                                        compteur3 = 0;
+                                        __delay_ms(400); 
+                                        while(PORTAbits.RA2 != 0 && fin == 0)
                                         {
-                                            afficheur(1,var1);
-                                            var1 = (get_count(var1,&sortie)%10);    // Obtiens la dizaine de la tension voulu
+                                            afficheur(2,compteur2);
+                                            compteur2 = get_count(compteur2)%4;    // Obtiens la dizaine de la tension voulue
                                             if(PORTAbits.RA1 == 0)
-                                            {
-                                                while(sortie!=1)
+                                            {   
+                                                __delay_ms(800); 
+                                                while(PORTAbits.RA2 != 0 && fin == 0)
                                                 {
-                                                    var2 = (get_count(var2,&sortie)%10);
-                                                    //affiche var2
+                                                    afficheur(3,compteur2);
+                                                    compteur2 = get_count(compteur2)%10; // Obtiens l'unité de la tension voulue
                                                     if(PORTAbits.RA1 == 0)
                                                     {
-                                                        //var_tension = var1*10+var2
-                                                        //Definir tention = var_tension
-                                                        __delay_ms(200);
+                                                        //Definir tention = compteur2*10+compteur2
+                                                         fin = 1;
+                                                        __delay_ms(400); 
                                                     }
-                                                }   // back 2 fois 
-                                            } 
+                                                }                          
+                                            }
+                                         } 
                                         break;
-                                       }
                                 }
+                                
                             }
-                            afficheur(2,0);// Remets les 7 segment ï¿½ 0
-                            afficheur(3,0);
+                            afficheur(0,nb_position+1);
+                            afficheur(1,compteur+1);
+                            afficheur(2,0);
+                            afficheur(3,0); 
+                            // bug ici n'affiche pas afficheur les 2 premiers chiffres
                         }
                     }
                     break;
-                case 2 :     // Affichage l'heure
-                    afficheur(2,2);
-                    while(sortie!=1)
+                    
+                case 2 :     // Affichage Heure
+                    while(PORTAbits.RA2 != 0 && fin == 0)
                     {
-                        compteur = get_count(compteur,&sortie);
-                        // afficher l   
+                        // afficher jour et mois 
+                        if(PORTAbits.RA1 == 0)
+                        {
+                            while(PORTAbits.RA2 != 0 && fin == 0)
+                            {
+                                __delay_ms(400);
+                                // afficher heure et minutes
+                                if(PORTAbits.RA1 == 0)
+                                {
+                                    while(PORTAbits.RA2 != 0 && fin == 0)
+                                    {
+                                        __delay_ms(400);
+                                        // afficher secondes
+                                        if(PORTAbits.RA1 == 0)
+                                        {
+                                            fin = 1;
+                                            __delay_ms(400);
+                                        }
+                                    }
+                                }  
+                            }
+                        }
                     }
                     break;
                     
-                case 3 :            // Rï¿½glage Date et heure 
-                    afficheur(2,3);
-                    __delay_ms(2000);
-                    while(sortie!=1)
+                case 3 :    // Commande Date
+                    while(PORTAbits.RA2 != 0)
                     {
-                        compteur = get_count(compteur,&sortie);
+                        compteur = get_count(compteur)%5;
+                        afficheur(1,compteur+1);
+                        if(PORTAbits.RA1 == 0)
+                        {
+                            switch(compteur)
+                            {
+                                case 0:
+                                    // saisie et changement du mois 
+                                    break;
+                                case 1:
+                                    // saisie et changement du jour
+                                    break;
+                                case 2:
+                                    // saisie et changement de l'heure 
+                                    break;
+                                case 3:
+                                    // saisie et changement des minutes
+                                    break;
+                                case 4:
+                                    // saisie et changement du mois secondes
+                                    break;
+                            }
+                        }
                     }
                     break;
                     
-                case 4 :            // Lecture EEPROM
-                    afficheur(2,4);
-                    __delay_ms(2000);
-                    while(sortie!=1)
+                case 4 :    // Lecture EEPROM
+                    while(PORTAbits.RA2 != 0)
                     {
-                        compteur = get_count(compteur,&sortie);
+                        compteur = get_count(compteur)%5;
+                        afficheur(1,compteur+1);
+                        if(PORTAbits.RA1 == 0)
+                        {
+                            while(PORTAbits.RA2 != 0)
+                            {   
+                                switch(compteur)
+                                {
+                                    case 0:
+                                        // Selection de la case mémoire à atteindre
+                                        break;
+                                    case 1:
+                                        // Lecture sur l'EEPROM de l'heure et des minutes
+                                        break;
+                                    case 2:
+                                        // Lecture sur l'EEPROM des secondes
+                                        break;
+                                    case 3:
+                                        // Lecture sur l'EEPROM de la tension
+                                        break;
+                                    case 4:
+                                        // Lecture sur l'EEPROM de l'intensité
+                                        break;
+                                }
+                            }
+                            //afficheur(0,nb_position);
+                            //afficheur(1,compteur);
+                            //afficheur(2,0);
+                            //afficheur(3,0);
+                        }
+                        
                     }
                     break;
                     
-                case 5 :            // Effacement EEPROM
-                    afficheur(2,5);
-                    __delay_ms(2000);
-                    while(PORTAbits.RA2 == 0)
+                case 5 :    // Effacement EEPROM
+                    __delay_ms(400);
+                    while(PORTAbits.RA2 != 0 && fin == 0)
                     {
-                        // affiche ï¿½tes vous sur d'effacer l'EEPROM
-                        // Trouver un moyen d'afficher la phrase de comfirmation
+                        afficheur(1,1);
                         if(PORTAbits.RA1 == 0)
                         {
                             //effacer l'EEPROM
-                            // affiche EPPROM effacï¿½
-                            afficheur(0,9);
+                            fin = 1;
                         }
                     }
-                    afficheur(0,0);
                     break;
                  
-                case 6 :            // Rï¿½glage EEPROM
-                    //enregistrement de l'EEPROM
-                    afficheur(2,6);
-                    __delay_ms(2000);
-                    while(sortie!=1)
+                case 6 :    // Commande EEPROM
+                    afficheur(0,0);
+                    __delay_ms(400);
+                    while(PORTAbits.RA2 != 0 && fin == 0)
                     {
-                        Reglage_EEPROM = get_count(Reglage_EEPROM,&sortie)%11;
-                        afficheur(1, Reglage_EEPROM/10);
-                        afficheur(0, Reglage_EEPROM%10);
+                        Reglage_EEPROM = get_count(Reglage_EEPROM)%11;
+                        afficheur(2, Reglage_EEPROM/10);
+                        afficheur(3, Reglage_EEPROM%10);
                         if(PORTAbits.RA1 == 0)
                         {
                               // faire le reglage avec l'EEPROM
-                             afficheur(0,7);
+                            fin = 1;
+                            __delay_ms(400);
                         }
                     }
-                     afficheur(0,0);
-                    break;    
+                    afficheur(2,0);
+                    afficheur(3,0);                    
+                    break;
             }
         }
-    }
+       afficheur(1,0); 
+    }         
 }
