@@ -19,6 +19,7 @@
 #define PCF2_W 0b01000110   // Adresse en ?criture du PCF8574 2
 #define PCF3_W 0b01000000   // Adresse en ?criture du PCF8574 3
 #define PCF4_W 0b01001110   // Adresse en ?criture du PCF8574 4
+#define RTC_W 0b11010000
 
 #include "main.h"
 
@@ -292,6 +293,104 @@ int EEPROM_Read(int address){
     return EEDATA;
 }
 
+void write_rtc (char registre, char donnee)
+{
+        SSPCON2bits.SEN = 1;            //Lancement du START
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du START
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPBUF = RTC_W;                //Envoi de l'adresse
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi de l'adresse
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPBUF = registre;
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi du registre
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPBUF = donnee;
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi de la donn?e
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPCON2bits.PEN = 1;            //Lancement du STOP
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du STOP
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+
+
+}
+
+char read_rtc(char registre)
+{
+    char donnee;
+    
+        SSPCON2bits.SEN = 1;            //Lancement du START
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du START
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPBUF = RTC_W;                //Envoi de l'adresse en ecriture
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi de l'adresse
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+
+        SSPBUF = registre;
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi du registre
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPCON2bits.RSEN = 1;            //Lancement du REPEATED START
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du START
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        
+        SSPBUF = RTC_W + 1;                //Envoi de l'adresse en lecture
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin de l'envoi de l'adresse
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+
+        
+        SSPCON2bits.RCEN = 1;            //Autorisation de r?ception
+        
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du START
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+        donnee = SSPBUF;
+        
+        SSPCON2bits.PEN = 1;            //Lancement du STOP
+        while(PIR1bits.SSPIF == 0);     //Attente de la fin du STOP
+        PIR1bits.SSPIF = 0;             //Remise ? 0 du Flag
+
+        return donnee;
+}
+
+char get_number_limit(char limite)
+{
+    char compteur2=0,compteur3=0;
+    __delay_ms(400);
+    while(PORTAbits.RA2 != 0)
+    {
+        afficheur(2,compteur2);
+        compteur2 = get_count(compteur2)%(limite/10+1);    // Obtiens la dizaine de la tension voulue
+        if(PORTAbits.RA1 == 0)
+        {   
+            __delay_ms(800);
+            while(PORTAbits.RA2 != 0)
+            {
+                afficheur(3,compteur3);
+                compteur3 = get_count(compteur3)%(limite-compteur2*10+1); // Obtiens l'unité de la tension voulue
+                if(PORTAbits.RA1 == 0)
+                {
+                    __delay_ms(400);
+                    return compteur2*10+compteur3;  
+                }
+            }                          
+        }
+    } 
+    return 0 ;
+}
+
+void reglages_rtc (char mois, char date, char heure, char minute, char seconde)
+{
+    write_rtc(0,seconde);
+    write_rtc(1,minute);
+    write_rtc(2,heure);
+    write_rtc(4,date);
+    write_rtc(5,mois);
+}
+
 void main(void) 
 {
     //Initialisations
@@ -316,7 +415,10 @@ void main(void)
     char compteur,compteur2,compteur3;   // compteur pour les rubriques
     char compteur_ON_OFF = 0;  // compteur pour la marche/arret
     char Reglage_EEPROM = 1;
-    char fin=0;   
+    char fin=0,tension,mois,jours,heures,minutes,secondes,case_eeprom;
+    char last_save = read_rtc(1);
+    
+    reglages_rtc(0b00010010,0b00100011,0b00010010,0b000110100,0);  // Init RTC
     
     afficheur(0,0);
     afficheur(1,0);
@@ -426,21 +528,42 @@ void main(void)
                     break;
                     
                 case 2 :     // Affichage Heure
-                    while(PORTAbits.RA2 != 0 && fin == 0)
+                     while(PORTAbits.RA2 != 0 && fin == 0)
                     {
                         // afficher jour et mois 
+                            mois = read_rtc(5);
+                            afficheur(3, mois & 0b00001111);
+                            afficheur(2, (mois & 0b11110000)>>4);
+                            
+                            jours = read_rtc(4);
+                            afficheur(1, jours & 0b00001111);
+                            afficheur(0, (jours & 0b11110000)>>4);
+
+         
                         if(PORTAbits.RA1 == 0)
                         {
                             while(PORTAbits.RA2 != 0 && fin == 0)
                             {
                                 __delay_ms(400);
                                 // afficher heure et minutes
+                                    minutes = read_rtc(1);
+                                    afficheur(3, minutes & 0b00001111);
+                                    afficheur(2, (minutes & 0b11110000)>>4);
+                                    heures = read_rtc(2);
+                                    afficheur(1, heures & 0b00001111);
+                                    afficheur(0, (heures & 0b11110000)>>4);
                                 if(PORTAbits.RA1 == 0)
                                 {
                                     while(PORTAbits.RA2 != 0 && fin == 0)
                                     {
                                         __delay_ms(400);
                                         // afficher secondes
+                                        minutes = 0b00000000;
+                                        afficheur(0, minutes & 0b00001111);
+                                        afficheur(1, (minutes & 0b11110000)>>4);
+                                        secondes = read_rtc(0);
+                                        afficheur(3, secondes & 0b00001111);
+                                        afficheur(2, (secondes & 0b11110000)>>4);
                                         if(PORTAbits.RA1 == 0)
                                         {
                                             fin = 1;
@@ -451,7 +574,10 @@ void main(void)
                             }
                         }
                     }
+                    afficheur(2, 0);
+                    afficheur(3, 0);
                     break;
+                    
                     
                 case 3 :    // Commande Date
                     while(PORTAbits.RA2 != 0)
@@ -494,7 +620,8 @@ void main(void)
                                 switch(compteur)
                                 {
                                     case 0:
-                                        // Selection de la case mï¿½moire ï¿½ atteindre
+                                        case_eeprom=get_number_limit(35);
+                                        // Selection de la case mémoire à atteindre
                                         break;
                                     case 1:
                                         // Lecture sur l'EEPROM de l'heure et des minutes
@@ -506,7 +633,7 @@ void main(void)
                                         // Lecture sur l'EEPROM de la tension
                                         break;
                                     case 4:
-                                        // Lecture sur l'EEPROM de l'intensitï¿½
+                                        // Lecture sur l'EEPROM de l'intensitÈ
                                         break;
                                 }
                             }
@@ -514,8 +641,7 @@ void main(void)
                             //afficheur(1,compteur);
                             //afficheur(2,0);
                             //afficheur(3,0);
-                        }
-                        
+                        }    
                     }
                     break;
                     
@@ -553,6 +679,14 @@ void main(void)
                     break;
             }
         }
-       afficheur(1,0);
+        afficheur(1,0); 
+        afficheur(2,0); 
+        afficheur(3,0); 
+       
+        if(read_rtc(1) == ((last_save & 0b11110000)) + 1){
+           last_save = read_rtc(1);
+           // enregistrer ici
+           // appeller la fonction d'enregistrement ici
+        }
     }         
 }
