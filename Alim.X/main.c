@@ -11,6 +11,10 @@
 #include <xc.h>
 #define _XTAL_FREQ 16000000
 
+#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
+#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
+#pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
+
 #define PCF1_W 0b01000010   // Adresse en ?criture du PCF8574 1
 #define PCF2_W 0b01000110   // Adresse en ?criture du PCF8574 2
 #define PCF3_W 0b01000000   // Adresse en ?criture du PCF8574 3
@@ -98,6 +102,8 @@ void main(void)
     
     while(1==1)
     {   
+        PORTBbits.RB4 = !PORTBbits.RB4;
+        PORTBbits.RB5 = compteur_ON_OFF;
         nb_position = get_count(nb_position)%7;
         afficheur(0,nb_position+1);
         if(PORTAbits.RA1 == 0)
@@ -322,6 +328,7 @@ void main(void)
                     break;
             }
         }
-       afficheur(1,0); 
+       afficheur(1,0);
+       __delay_ms(500);
     }         
 }
