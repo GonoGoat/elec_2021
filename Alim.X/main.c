@@ -9,7 +9,7 @@
 #pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
 
 #include <xc.h>
-#define _XTAL_FREQ 16000000
+#define _XTAL_FREQ 10000000
 
 #pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
 #pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
@@ -75,6 +75,33 @@ void afficheur(char position, char valeur)
     PIR1bits.SSPIF = 0;                 // Remise ? 0 du flag
 }
 
+void EEPROM_Write(int address, int data){
+    EEADR = address;                    // Write address to the EEADR register 
+    EEDATA = data;                      // Copy data to the EEDATA register for write to EEPROM location 
+    EECON1bits.EEPGD = 0;               // Access data EEPROM memory
+    EECON1bits.WRERR = 0;               // EEPROM Error Flag bit
+    EECON1bits.WREN = 1;                // Allow write to the memory
+    INTCONbits.GIE = 0;                 //  Disable global interrupt
+    
+    // Assign below sequence to EECON2 Register is necessary to write data to EEPROM memory 
+    EECON2 = 0x55;
+    EECON2 = 0xaa;
+    
+    EECON1bits.WR = 1;                  // Start writing data to EEPROM memory
+    INTCONbits.GIE = 1;                 // Enable interrupt
+    
+    while(PIR2bits.EEIF == 0);          // Wait for write operation complete
+    PIR2bits.EEIF = 0;                  // Reset EEIF for further write operation
+}
+
+int EEPROM_Read(int address){
+    EEADR = address;                    // Read address to the EEADR register 
+    EECON1bits.WREN = 0;                // Allow read to the memory
+    EECON1bits.EEPGD = 0;               // Access data EEPROM memory
+    EECON1bits.RD = 1;                  // Initiates an EEPROM read
+    return EEDATA;
+}
+
 void main(void) 
 {
     //Initialisations
@@ -104,6 +131,8 @@ void main(void)
     {   
         PORTBbits.RB4 = !PORTBbits.RB4;
         PORTBbits.RB5 = compteur_ON_OFF;
+        __delay_ms(400);
+        
         nb_position = get_count(nb_position)%7;
         afficheur(0,nb_position+1);
         if(PORTAbits.RA1 == 0)
@@ -329,6 +358,5 @@ void main(void)
             }
         }
        afficheur(1,0);
-       __delay_ms(500);
     }         
 }
