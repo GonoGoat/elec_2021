@@ -44,9 +44,9 @@ void send_tram(char * tram) {
       //printf("%c", *tram);
       tram++;
     }
-    TXREG = "\r";
+    TXREG = '\r';
     RCSTAbits.CREN = 0;
-    TXREG = "\n";
+    TXREG = '\n';
     RCSTAbits.CREN = 0;
 }
 
