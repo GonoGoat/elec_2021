@@ -19,7 +19,7 @@
 
 /* PORTAbits.RA0 = Bouton Up
 * PORTAbits.RA1 = Bouton OK
-* PORTAbits.RA2 = Bouton BAck
+* PORTAbits.RA2 = Bouton Back
 * 
 * PORTBbits.RB5 = LED_1
 * PORTBbits.RB4 = LED_2
@@ -165,7 +165,7 @@ void main(void)
                                         while(PORTAbits.RA2 != 0 && fin == 0)
                                         {
                                             afficheur(2,compteur2);
-                                            compteur2 = get_count(compteur2)%4;    // Obtiens la dizaine de la tension voulue
+                                            compteur2 = get_count(compteur2)%10;    // Obtiens la dizaine de la tension voulue
                                             if(PORTAbits.RA1 == 0)
                                             {   
                                                 __delay_ms(800); 
@@ -189,8 +189,7 @@ void main(void)
                             afficheur(0,nb_position+1);
                             afficheur(1,compteur+1);
                             afficheur(2,0);
-                            afficheur(3,0); 
-                            // bug ici n'affiche pas afficheur les 2 premiers chiffres
+                            afficheur(3,0);
                         }
                     }
                     break;
@@ -298,6 +297,7 @@ void main(void)
                         {
                             //effacer l'EEPROM
                             fin = 1;
+                            __delay_ms(400);
                         }
                     }
                     break;
