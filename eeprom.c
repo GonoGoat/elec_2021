@@ -11,7 +11,11 @@
 #pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
 #pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
 #pragma config BOREN = OFF      // Brown-out Reset Enable bit (BOR disabled)
-#pragma config LVP = OFF        // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3 is digital I/O, HV on MCLR must be used for programming)
+#pragma config LVP = OFF        // Low-Voltage (Single-Supply) In-Circuit Serial Progr
+#include <xc.h>
+#define _XTAL_FREQ 16000000
+
+#define PCF1_W 0b01000010   // Adresse en ?criture du PCF8574 1amming Enable bit (RB3 is digital I/O, HV on MCLR must be used for programming)
 #pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
 #pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
 #pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
@@ -20,17 +24,14 @@
 // Use project enums instead of #define for ON and OFF. --------------------------------------------------------------------------------------------------
 
 
-#include <xc.h>
-#define _XTAL_FREQ 16000000
-
-#define PCF1_W 0b01000010   // Adresse en ?criture du PCF8574 1
 #define PCF2_W 0b01000110   // Adresse en ?criture du PCF8574 2
 #define PCF3_W 0b01000000   // Adresse en ?criture du PCF8574 3
 #define PCF4_W 0b01001110   // Adresse en ?criture du PCF8574 4
 
-void affiche(int nombre);
+void affiche(char nombre);
 void afficheur(char position, char valeur);
 void enregistrer_mesure(char measurement_data[7]);
+char * lire_mesure(char position_mesure);
 char get_nombre_enregistrement();
 void set_nombre_enregistrement(char nombre_enregistrement);
 void EEPROM_Write(char address, char data);
@@ -40,10 +41,10 @@ void initialisation_compteur();
 void main(void) {
     
     initialisation_compteur();
-
-    //char mesures[7] = {1,2,3,4,5,6,7};
-
-
+    
+    // Exemple de données à enregistrer
+    char mesures[7]= {12, 23, 14, 30, 20, 6, 7};
+       
     // initialisations   
     TRISA = 0b11111111;     // TRISA = 255 or TRISA = 0xFF
     TRISB = 0b00000000;
@@ -56,18 +57,31 @@ void main(void) {
     SSPCON2 = 0b00000000;
     SSPADD = 39;            // Voir datasheet page 82, bit 3-0
 
-    // enregister_mesure(mesures);
+    enregistrer_mesure(mesures);
+    
+   
+    
+    // Lecture de données --------------------------
+    // Début de la procédure de lecture
+    char numero_enregistrement = 1;
+    char *l = lire_mesure(numero_enregistrement);
+    char data[7]; // Tableau à manipuler
+    
+    for (char i = 0; i < 8; i ++){
+        data[i] = *(l+i);
+    }
+    // Fin de la procédure de lecture---------------
     
     
-    while(1){        
-        affiche(2411);
+    while(1){   
+        affiche(data[0]);
     }
     return;
 }
 
 
 // Afficher un nombre dans LES 7segments
-void affiche(int nombre){ 
+void affiche(char nombre){ 
     afficheur(3, nombre % 10);  // Unite
     afficheur(2, nombre / 10);  // Dizaine
     afficheur(1, nombre / 100);
@@ -114,18 +128,15 @@ void enregistrer_mesure(char measurement_data[7]){
     char nombre_enregistrement = get_nombre_enregistrement();          
     char position;  // addresse de l'eeprom
 
-    if (nombre_enregistrement == 0){
-        position = 1;
-    }
-    else if (nombre_enregistrement < 36){
-        position = (nombre_enregistrement * 7) + 2;
+    if (nombre_enregistrement < 36){
+        position = (nombre_enregistrement * 7) + 1;
     }
     else { // (nombre_enregistrement >= 36)
         position = 1;
         nombre_enregistrement = 0;
     }
 
-    // Ecrireture des donnï¿½es
+    // Ecriture des donnï¿½es
     for (char i = 0; i < 7; i++) {
         EEPROM_Write(position, measurement_data[i]);
         position++;
@@ -135,18 +146,30 @@ void enregistrer_mesure(char measurement_data[7]){
     set_nombre_enregistrement(nombre_enregistrement);
 }
 
+// Lire une mesure
+char * lire_mesure(char position_mesure){
+    static char data[7]; // Tableau des données lues
+    char case_eeprom = (position_mesure * 7) + 1;
+    
+    for(char i = 0; i < 7; i++){
+        data[i] = EEPROM_Read(case_eeprom + i); 
+    }
+    
+    return data;
+}
 
-
+// retourne le nombre d'enregistrement 
 char get_nombre_enregistrement(){
     return EEPROM_Read(0);
 }
 
+// definir le nombre d'enregistrement
 void set_nombre_enregistrement(char nombre_enregistrement){
     nombre_enregistrement += 1;
     EEPROM_Write(0, nombre_enregistrement);
 }
 
-
+// ecrire une donnée dans une case de l'eeprom
 void EEPROM_Write(char address, char data){
     EEADR = address;                    // Write address to the EEADR register 
     EEDATA = data;                      // Copy data to the EEDATA register for write to EEPROM location 
@@ -166,6 +189,7 @@ void EEPROM_Write(char address, char data){
     PIR2bits.EEIF = 0;                  // Reset EEIF for further write operation
 }
 
+// lire une donnée d'une case de l'eeprom
 char EEPROM_Read(char address){
     EEADR = address;                    // Read address to the EEADR register 
     EECON1bits.WREN = 0;                // Allow read to the memory
@@ -174,6 +198,7 @@ char EEPROM_Read(char address){
     return EEDATA;
 }
 
+// initialiser le compteur, nécessaire en cas de mise hors tension
 void initialisation_compteur(){
     char valeur_actuelle = EEPROM_Read(0);
     if(!valeur_actuelle >= 0 || !valeur_actuelle <=36){
