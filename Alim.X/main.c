@@ -160,6 +160,8 @@ void turn_power_on (void) {
 
 void turn_power_off (void) {
   send_tram(POWER_OFF);
+}
+
 char get_val() {
     char result = 0;
     char buffer[30];
