@@ -44,14 +44,31 @@ void decimal_to_ascii_hex(int decimal, char * buffer) {
 
 void send_tram(char * tram) {
     while(*tram != '\0') {
-      while (!TXIF);
-      TXREG = *tram;
-      tram++;
+        while (!TXIF);
+        TXREG = *tram;
+        tram++;
     }
     while (!TXIF);
     TXREG = '\r';
     while (!TXIF);
     TXREG = '\n';
+}
+
+void receive_tram(char * buffer) { 
+    RCSTAbits.CREN = 1;
+    if(OERR) {
+        //If error, set bit of reading to 1.
+        RCSTAbits.CREN = 0;
+        RCSTAbits.CREN = 1;
+    }
+    
+    while(!RCIF);
+    while(RCREG != '\r') {
+        //Wait until the reception buffer is empty.
+        while(!RCIF);
+        *buffer = RCREG;
+        buffer++;
+    }
 }
 
 int chksum_calculation (const char * chain, char * buffer) {
@@ -143,21 +160,30 @@ void turn_power_on (void) {
 
 void turn_power_off (void) {
   send_tram(POWER_OFF);
+char get_val() {
+    char result = 0;
+    char buffer[30];
+    receive_tram(buffer);
+    for(char i = 7; i<11; i++) {
+        result += ascii_hex_to_decimal(buffer[i]);
+        if(i!=10) result = result << 4; 
+    }
+    return result;
 }
 
 char get_voltage () {
-  // TODO
-  return 0;
+    send_tram(READ_VOLTAGE);
+    return get_val();
 }
 
 char get_current () {
-  // TODO
-  return 0;
+    send_tram(READ_CURRENT);
+    return get_val();
 }
 
 char get_power () {
-  // TODO
-  return 0;
+    send_tram(READ_POWER);
+    return get_val();
 }
 
 int main(void) {
