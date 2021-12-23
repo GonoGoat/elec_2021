@@ -83,8 +83,10 @@ void set_value (char tram[30], int val) {
 void set_voltage (int voltage) {
     // Enable remote mode
     // Send UART
+    send_tram(ENABLE_REMOTE_MODE);
     // Enable voltage mode
     // Send UART
+    send_tram(ENABLE_VOLTAGE);
     // Set V value
     char new_tram3[30] = "";
     char tram[30] = PRE_SET_VALUE;
@@ -93,14 +95,17 @@ void set_voltage (int voltage) {
     chksum_calculation(tram, new_tram3);
     to_upper(new_tram3);
     // Send UART
+    send_tram(new_tram3);
     printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_VOLTAGE, new_tram3);
 }
 
 void set_current (int current) {
     // Enable remote mode
     // Send UART
+    send_tram(ENABLE_REMOTE_MODE);
     // Enable current mode
     // Send UART
+    send_tram(ENABLE_CURRENT);
     // Set A value
     char new_tram3[30] = "";
     char tram[30] = PRE_SET_VALUE;
@@ -109,6 +114,7 @@ void set_current (int current) {
     chksum_calculation(tram, new_tram3);
     to_upper(new_tram3);
     // Send UART
+    send_tram(new_tram3);
     printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_CURRENT, new_tram3);
 }
 
@@ -131,6 +137,14 @@ void set_power (int power) {
     printf("%s\n%s\n%s\n", ENABLE_REMOTE_MODE, ENABLE_POWER, new_tram3);
 }
 
+void turn_power_on (void) {
+  send_tram(POWER_ON);
+}
+
+void turn_power_off (void) {
+  send_tram(POWER_OFF);
+}
+
 char get_voltage () {
   // TODO
   return 0;
@@ -147,10 +161,7 @@ char get_power () {
 }
 
 int main(void) {
-    // set_voltage(10); // 10 V
-    // set_current(10); // 10 A
-
-    // Put the config in the main !!!
+    // Please put the config in the main !!!
 
     RCSTA = RCSTA_byte;
     TXSTA = TXSTA_byte;
